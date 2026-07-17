@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import request, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,6 +14,9 @@ from rest_framework.generics import (
     UpdateAPIView,
     DestroyAPIView,
 )
+from .parser import extract_text_from_pdf
+from rest_framework.generics import RetrieveAPIView
+from .ats import analyze_resume
 
 class ResumeUploadAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -21,10 +24,14 @@ class ResumeUploadAPIView(APIView):
     def post(self, request):
         serializer = ResumeSerializer(data=request.data)
 
-        if serializer.is_valid():
-            serializer.save(user=request.user)
+        if serializer.is_valid(): 
+         resume = serializer.save(user=request.user)
 
-            return Response(
+        text = extract_text_from_pdf(resume.resume_file.path)
+
+        resume.extracted_text = text
+        resume.save()
+        return Response(
                 {
                     "message": "Resume uploaded successfully.",
                     "data": serializer.data,
@@ -60,3 +67,18 @@ class ResumeDeleteAPIView(DestroyAPIView):
 
     def get_queryset(self):
         return Resume.objects.filter(user=self.request.user)
+class ResumeATSAPIView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            resume = Resume.objects.get(pk=pk, user=request.user)
+        except Resume.DoesNotExist:
+            return Response(
+                {"error": "Resume not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        result = analyze_resume(resume.extracted_text)
+
+        return Response(result, status=status.HTTP_200_OK)
