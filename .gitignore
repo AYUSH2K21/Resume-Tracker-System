@@ -1,9 +1,26 @@
+# Python / Django
 venv/
-__pycache__/
 *.pyc
+__pycache__/
 db.sqlite3
-.env
 media/
 staticfiles/
+*.log
+
+# Environment variables
+.env
+*.env
+backend/.env
+
+# Node / Vite
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+
+# IDE / System
 .idea/
 .vscode/
+.DS_Store
+scratch/
+.system_generated/
